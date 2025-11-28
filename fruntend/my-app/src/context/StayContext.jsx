@@ -4,82 +4,54 @@ export const StayContext = createContext(null);
 
 export const StayContextProvider = ({ children }) => {
   const [stays, setStays] = useState([]);
-
-  // Safe user initialization from localStorage
   const [user, setUser] = useState(() => {
     try {
       const token = localStorage.getItem("token");
       const userInfo = localStorage.getItem("user");
-
       if (!token || !userInfo) return null;
-
-      const parsedUser = JSON.parse(userInfo);
-      return { token, ...parsedUser };
-    } catch (err) {
-      console.warn("Failed to parse user from localStorage:", err);
+      return { token, ...JSON.parse(userInfo) };
+    } catch {
       return null;
     }
   });
 
-  // ---------------- AUTH ----------------
+  // ---------- AUTH ----------
   const login = ({ token, user }) => {
-    try {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      setUser({ token, ...user });
-    } catch (err) {
-      console.error("Login storage error:", err);
-    }
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser({ token, ...user });
   };
 
   const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  setUser(null);
-  setStays([]); // optional: clear stays
-  window.location.href = "/login"; // redirect to login page
-};
-
-
-  // -------------- PROTECTED FETCH --------------
-  const authFetch = async (url, options = {}) => {
-    try {
-      const headers = {
-        ...(options.headers || {}),
-        ...(user?.token && { Authorization: `Bearer ${user.token}` }),
-      };
-
-      const res = await fetch(url, { ...options, headers });
-
-      if (!res.ok) {
-        console.error("HTTP ERROR", res.status);
-        throw new Error(`Request failed with status ${res.status}`);
-      }
-
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error("Auth fetch error:", err.message);
-      return null; // return null instead of throwing
-    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.href = "/login";
   };
 
-  // ---------------- STAY FUNCTIONS ----------------
-  const addStayToState = (stay) => setStays((prev) => [...prev, stay]);
-
+  // ---------- PUBLIC FETCH (NO TOKEN NEEDED) ----------
   const fetchStays = async () => {
-    const data = await authFetch("http://localhost:5000/api/stay/all");
+    try {
+      const res = await fetch("http://localhost:5000/api/stay/all");
+      const data = await res.json();
 
-    if (data?.success) {
-      setStays(data.stays || []);
-    } else {
-      console.warn("Failed to fetch stays or no data returned");
+      if (data.success) {
+        setStays(data.stays);
+      }
+    } catch (err) {
+      console.error("Fetch stays error:", err);
     }
   };
 
+  // Fetch stays for EVERYONE (logged in OR not)
   useEffect(() => {
-    if (user) fetchStays();
-  }, [user]);
+    fetchStays();
+  }, []);
+
+  // Add stay for owners
+  const addStayToState = (stay) => {
+    setStays((prev) => [...prev, stay]);
+  };
 
   return (
     <StayContext.Provider
@@ -89,7 +61,6 @@ export const StayContextProvider = ({ children }) => {
         user,
         login,
         logout,
-        authFetch,
       }}
     >
       {children}

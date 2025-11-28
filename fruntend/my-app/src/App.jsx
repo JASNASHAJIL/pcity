@@ -7,7 +7,7 @@ import AddStay from "./components/owner/AddStay.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
 import ForgotPassword from "./components/Auth/ForgotPassword.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx"; // import it
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import UserPage from "./pages/UserPage.jsx";
 
 function App() {
@@ -16,10 +16,13 @@ function App() {
       <Router>
         <Header />
         <Routes>
-          <Route path="/" element={<Navigate to="/user-map" />} />
-          
 
-          <Route path="/user" element={<UserPage />} />
+          {/* Redirect root to /userpage */}
+          <Route path="/" element={<Navigate to="/userpage" />} />
+
+          {/* Real user page */}
+          <Route path="/userpage" element={<UserPage />} />
+
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -1,12 +1,22 @@
+const Stay = require("../models/Stay");
 const User = require("../models/User");
 const Owner = require("../models/Owner");
 
-exports.getAllUsers = async (req, res) => {
-  const users = await User.find();
-  res.json(users);
-};
+exports.approveStay = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-exports.getAllOwners = async (req, res) => {
-  const owners = await Owner.find();
-  res.json(owners);
+    const stay = await Stay.findByIdAndUpdate(
+      id,
+      { isApproved: true },
+      { new: true }
+    );
+
+    if (!stay)
+      return res.status(404).json({ success: false, message: "Stay not found" });
+
+    res.json({ success: true, message: "Stay approved", stay });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

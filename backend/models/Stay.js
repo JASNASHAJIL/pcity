@@ -10,8 +10,11 @@ const staySchema = new mongoose.Schema(
     lng: { type: Number, required: true },
     images: { type: [String], default: [] },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "Owner" },
+
+    // ⭐ NEW FIELD ➜ stay only visible to users after admin approves
+    isApproved: { type: Boolean, default: false },
   },
-  { timestamps: true } // adds createdAt and updatedAt
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Stay", staySchema);
