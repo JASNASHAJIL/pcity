@@ -1,19 +1,30 @@
 const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ success: false, message: "Authorization header missing" });
+    }
 
-  if (!token)
-    return res.status(401).json({ message: "Token required" });
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Token required" });
+    }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err)
-      return res.status(403).json({ message: "Invalid token" });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (user.role !== "admin")
-      return res.status(403).json({ message: "Admin access only" });
+    if (decoded.role !== "owner") {
+      return res.status(403).json({ success: false, message: "Owner access only" });
+    }
 
-    req.user = user;
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    console.error("Owner token error:", err);
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Token expired" });
+    }
+    return res.status(403).json({ success: false, message: "Invalid token" });
+  }
 };

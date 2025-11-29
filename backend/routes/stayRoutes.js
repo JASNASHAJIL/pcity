@@ -1,12 +1,28 @@
 const express = require("express");
 const router = express.Router();
-const { addStay, getAllStays } = require("../controllers/stayController");
-const { verifyOwnerToken } = require("../middleware/authMiddleware");
 
-// Add new Stay
-router.post("/add", verifyOwnerToken, addStay);
+const {
+  addStay,
+  uploadMiddleware,
+  getAllStays,
+  getPendingStays,
+  approveStay,
+  rejectStay,
+  getOwnerStays,
+} = require("../controllers/stayController");
 
-// Get all stays
+const { verifyOwnerToken, verifyAdminToken } = require("../middleware/authMiddleware");
+
+// OWNER ROUTES
+router.post("/add", verifyOwnerToken, uploadMiddleware, addStay);
+router.get("/owner", verifyOwnerToken, getOwnerStays);
+
+// USER ROUTES
 router.get("/all", getAllStays);
+
+// ADMIN ROUTES
+router.get("/pending", verifyAdminToken, getPendingStays);
+router.put("/approve/:id", verifyAdminToken, approveStay);
+router.put("/reject/:id", verifyAdminToken, rejectStay);
 
 module.exports = router;

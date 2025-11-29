@@ -14,7 +14,10 @@ exports.registerController = async (req, res) => {
     if (!username || !name || !phone || !password)
       return res.status(400).json({ message: "All fields are required" });
 
-    const existingUser = await User.findOne({ $or: [{ username }, { phone }] });
+    const existingUser = await User.findOne({ 
+      $or: [{ username }, { phone }] 
+    });
+
     if (existingUser)
       return res.status(400).json({ message: "Username or phone already exists" });
 
@@ -24,7 +27,7 @@ exports.registerController = async (req, res) => {
     res.status(201).json({ message: "User registered successfully", user });
   } catch (err) {
     console.error("Register error:", err.message);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -32,6 +35,7 @@ exports.registerController = async (req, res) => {
 exports.loginController = async (req, res) => {
   try {
     const { username, password } = req.body;
+
     if (!username || !password)
       return res.status(400).json({ message: "Username and password required" });
 
@@ -44,13 +48,13 @@ exports.loginController = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "30d" }
     );
 
     res.json({ message: "Login successful", token, user });
   } catch (err) {
     console.error("Login error:", err.message);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -58,10 +62,11 @@ exports.loginController = async (req, res) => {
 exports.forgotPasswordController = async (req, res) => {
   try {
     const { phone } = req.body;
+
     if (!phone) return res.status(400).json({ message: "Phone is required" });
 
     const user = await User.findOne({ phone });
-    if (!user) return res.status(404).json({ message: "Phone not found" });
+    if (!user) return res.status(404).json({ message: "Phone not registered" });
 
     const otp = generateOtp();
     const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -70,9 +75,9 @@ exports.forgotPasswordController = async (req, res) => {
     user.otpExpiry = expiry;
     await user.save();
 
-    // Send OTP via Fast2SMS
+    // --- Send OTP via Fast2SMS ---
     try {
-      const smsResponse = await axios.post(
+      await axios.post(
         "https://www.fast2sms.com/dev/bulkV2",
         {
           message: `Your OTP for StayEase is ${otp}`,
@@ -86,17 +91,16 @@ exports.forgotPasswordController = async (req, res) => {
           }
         }
       );
-      console.log("SMS Response:", smsResponse.data);
 
       res.json({ success: true, message: "OTP sent to phone number" });
     } catch (smsError) {
-      console.error("SMS sending error →", smsError.response?.data || smsError.message || smsError);
-      return res.status(500).json({ message: "SMS sending failed" });
+      console.error("SMS Error:", smsError.response?.data || smsError.message);
+      return res.status(500).json({ message: "Failed to send OTP" });
     }
 
   } catch (err) {
-    console.error("Forgot Password error →", err.message);
-    res.status(500).json({ message: err.message });
+    console.error("Forgot Password error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -104,6 +108,7 @@ exports.forgotPasswordController = async (req, res) => {
 exports.verifyOtpController = async (req, res) => {
   try {
     const { phone, otp, newPassword } = req.body;
+
     if (!phone || !otp || !newPassword)
       return res.status(400).json({ message: "All fields are required" });
 
@@ -116,14 +121,15 @@ exports.verifyOtpController = async (req, res) => {
     if (user.otpExpiry < Date.now())
       return res.status(400).json({ message: "OTP expired" });
 
-    user.password = newPassword; // hashed automatically by model
+    // Reset password
+    user.password = newPassword; // hashed by model
     user.resetOtp = null;
     user.otpExpiry = null;
     await user.save();
 
     res.json({ success: true, message: "Password reset successful" });
   } catch (err) {
-    console.error("Verify OTP error →", err.message);
-    res.status(500).json({ message: err.message });
+    console.error("Verify OTP error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 };

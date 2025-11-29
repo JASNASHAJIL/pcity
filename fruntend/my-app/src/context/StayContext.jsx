@@ -15,6 +15,9 @@ export const StayContextProvider = ({ children }) => {
     }
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   // ---------- AUTH ----------
   const login = ({ token, user }) => {
     localStorage.setItem("token", token);
@@ -29,21 +32,28 @@ export const StayContextProvider = ({ children }) => {
     window.location.href = "/login";
   };
 
-  // ---------- PUBLIC FETCH (NO TOKEN NEEDED) ----------
+  // ---------- FETCH STAYS ----------
   const fetchStays = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch("http://localhost:5000/api/stay/all");
       const data = await res.json();
 
       if (data.success) {
         setStays(data.stays);
+      } else {
+        setError(data.message || "Failed to fetch stays");
       }
     } catch (err) {
       console.error("Fetch stays error:", err);
+      setError("Network error while fetching stays");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fetch stays for EVERYONE (logged in OR not)
+  // Fetch stays on mount
   useEffect(() => {
     fetchStays();
   }, []);
@@ -61,6 +71,9 @@ export const StayContextProvider = ({ children }) => {
         user,
         login,
         logout,
+        loading,
+        error,
+        fetchStays,
       }}
     >
       {children}

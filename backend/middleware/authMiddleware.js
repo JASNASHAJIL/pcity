@@ -1,26 +1,64 @@
 const jwt = require("jsonwebtoken");
 
+// -------------------- OWNER TOKEN --------------------
 exports.verifyOwnerToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  console.log("Token received:", token);
+  console.log("verifyOwnerToken hit");
+  try {
+    const authHeader = req.headers.authorization;
 
-  if (!token)
-    return res.status(401).json({ success: false, message: "Token required" });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.log("JWT verify error:", err);
-      return res.status(403).json({ success: false, message: "Invalid token" });
+    if (!authHeader) {
+      return res.status(401).json({ success: false, message: "Authorization header missing" });
     }
 
-    console.log("Decoded JWT:", user);
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Token required" });
+    }
 
-    if (user.role !== "owner") {
-      console.log("Role mismatch:", user.role);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "owner") {
       return res.status(403).json({ success: false, message: "Owner access only" });
     }
 
-    req.user = user;
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    console.error("verifyOwnerToken Error:", err);
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Token expired" });
+    }
+    return res.status(403).json({ success: false, message: "Invalid token" });
+  }
+};
+
+// -------------------- ADMIN TOKEN --------------------
+exports.verifyAdminToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ success: false, message: "Authorization header missing" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Token required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Admin access only" });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error("verifyAdminToken Error:", err);
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Token expired" });
+    }
+    return res.status(403).json({ success: false, message: "Invalid token" });
+  }
 };

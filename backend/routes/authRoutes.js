@@ -7,9 +7,10 @@ const {
   verifyOtpController
 } = require("../controllers/authController");
 
-router.post("/register", registerController);
-router.post("/login", loginController);
-router.post("/forgot-password", forgotPasswordController);
-router.post("/verify-otp", verifyOtpController);
+// ---------------- USER AUTH ----------------
+router.post("/register", registerController);       // Signup (User / Owner)
+router.post("/login", loginController);             // Login
+router.post("/forgot-password", forgotPasswordController); // Send OTP
+router.post("/verify-otp", verifyOtpController);   // Verify OTP & reset password
 
 module.exports = router;

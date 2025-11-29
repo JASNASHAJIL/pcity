@@ -2,38 +2,47 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const fileUpload = require("express-fileupload");
+
 
 const authRoutes = require("./routes/authRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
-const StayRoutes = require("./routes/stayRoutes");
+const stayRoutes = require("./routes/stayRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 const createDefaultAdmin = require("./CreateAdmin");
-
-// Create default admin once
-createDefaultAdmin();
 
 const app = express();
 
 // -------------------- MIDDLEWARES --------------------
 app.use(cors());
 app.use(express.json());
-app.use(fileUpload());
+app.use(express.urlencoded({ extended: true }));
 
-// Serve images
+
+
+// Serve uploaded images
 app.use("/uploads", express.static("uploads"));
 
 // -------------------- ROUTES --------------------
-app.use("/api/admin", adminRoutes);   // Put after middlewares
-app.use("/api/owner", ownerRoutes);
-app.use("/api", authRoutes);          // /login /register etc.
-app.use("/api/stay", StayRoutes);
+app.use("/api", authRoutes);          // login / register
+app.use("/api/owner", ownerRoutes);   // owner routes
+app.use("/api/stay", stayRoutes);     // stays + admin approval
+app.use("/api/admin", adminRoutes);   // admin panel
 
-// -------------------- DATABASE --------------------
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+// -------------------- DATABASE & DEFAULT ADMIN --------------------
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("MongoDB connected");
 
-// -------------------- START SERVER --------------------
-app.listen(5000, () => console.log("Server running on port 5000"));
+    // Create default admin if not exists
+    await createDefaultAdmin();
+
+    app.listen(5000, () => console.log("Server running on port 5000"));
+  } catch (err) {
+    console.error("Database connection failed:", err);
+    process.exit(1); // exit process if DB connection fails
+  }
+};
+
+startServer();

@@ -1,16 +1,33 @@
 const Admin = require("./models/Admin");
+const bcrypt = require("bcryptjs");
 
 async function createDefaultAdmin() {
-  const exists = await Admin.findOne({ phone: "9999999999" }); // your admin login number
-  if (exists) return;
+  try {
+    const defaultPhone = process.env.DEFAULT_ADMIN_PHONE || "9999999999";
+    const defaultName = process.env.DEFAULT_ADMIN_NAME || "Super Admin";
+    const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME || "admin";
+    const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || "admin123"; // temporary, must change later
 
-  await Admin.create({
-    name: "Super Admin",
-    phone: "9999999999",
-    role: "admin",
-  });
+    const exists = await Admin.findOne({ phone: defaultPhone });
+    if (exists) {
+      console.log("Default admin already exists");
+      return;
+    }
 
-  console.log("Default Admin Created");
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    await Admin.create({
+      name: defaultName,
+      phone: defaultPhone,
+      username: defaultUsername,
+      password: hashedPassword,
+      role: "admin",
+    });
+
+    console.log("Default Admin Created Successfully");
+  } catch (err) {
+    console.error("Error creating default admin:", err);
+  }
 }
 
 module.exports = createDefaultAdmin;

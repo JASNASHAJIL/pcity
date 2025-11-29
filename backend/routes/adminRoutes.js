@@ -1,8 +1,9 @@
 const router = require("express").Router();
 const { getAllUsers, getAllOwners } = require("../controllers/adminController");
-const { verifyToken } = require("../middleware/authMiddleware");
+const { verifyAdminToken } = require("../middleware/authMiddleware");
 
-router.get("/users", verifyToken("admin"), getAllUsers);
-router.get("/owners", verifyToken("admin"), getAllOwners);
+// Admin-only routes
+router.get("/users", verifyAdminToken, getAllUsers);
+router.get("/owners", verifyAdminToken, getAllOwners);
 
 module.exports = router;
